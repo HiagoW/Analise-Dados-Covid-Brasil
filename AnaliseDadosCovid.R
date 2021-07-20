@@ -165,15 +165,15 @@ head(dfPRContaminationRate)
 # View(dfPRContaminationRate)
 
 # %% [markdown]
-# ## Death rate
+# ## Contamination rate
 
 # %% [code] {"execution":{"iopub.status.busy":"2021-06-03T13:50:15.750106Z","iopub.execute_input":"2021-06-03T13:50:15.751624Z","iopub.status.idle":"2021-06-03T13:50:16.988398Z"}}
 # Change the scale of Y axos or apply some normalization could help in visualization, beacause it starts on 0
 # and than has a peak at 2, but then it keeps approximately at 1
-figDeathRate <- plot_ly(dfPRContaminationRate,x=~date,y=~contamination_rate,type='scatter',name='Contamination Rate',mode='lines')
-figDeathRate <- figDeathRate %>% layout(xaxis=list(title='Date'),yaxis=list(title='Contamination Rate'))
-figDeathRate <- figDeathRate %>% config(locale="pt-br")
-figDeathRate
+figContaminationRate <- plot_ly(dfPRContaminationRate,x=~date,y=~contamination_rate,type='scatter',name='Contamination Rate',mode='lines')
+figContaminationRate <- figDeathRate %>% layout(xaxis=list(title='Date'),yaxis=list(title='Contamination Rate'))
+figContaminationRate <- figDeathRate %>% config(locale="pt-br")
+figContaminationRate
 
 # %% [markdown]
 # ## Deaths / New Cases

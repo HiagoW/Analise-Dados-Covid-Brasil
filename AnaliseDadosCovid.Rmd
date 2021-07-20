@@ -154,7 +154,7 @@ figRestrictionMeasure2
 
 ## Contamination rate
 * Calculate contamination rate  = new cases / new cases from a day before
-
+* Change the scale of Y axis or apply some normalization could help in visualization, beacause it starts on 0 and than has a peak at 2, but then it keeps approximately at 1
 ```{r}
 dfPRContaminationRate = dfPRNewCases %>%
   mutate(contamination_rate = round(confirmed/lag(confirmed),2), .after=new_cases) %>%
@@ -164,18 +164,11 @@ dfPRContaminationRate$contamination_rate[1] = 0
 
 head(dfPRContaminationRate)
 # View(dfPRContaminationRate)
-```
 
-
-## Death rate
-
-* Change the scale of Y axos or apply some normalization could help in visualization, beacause it starts on 0 and than has a peak at 2, but then it keeps approximately at 1
-
-```{r}
-figDeathRate <- plot_ly(dfPRContaminationRate,x=~date,y=~contamination_rate,type='scatter',name='Contamination Rate',mode='lines')
-figDeathRate <- figDeathRate %>% layout(xaxis=list(title='Date'),yaxis=list(title='Contamination Rate'))
-figDeathRate <- figDeathRate %>% config(locale="pt-br")
-figDeathRate
+figContaminationRate <- plot_ly(dfPRContaminationRate,x=~date,y=~contamination_rate,type='scatter',name='Contamination Rate',mode='lines')
+figContaminationRate <- figDeathRate %>% layout(xaxis=list(title='Date'),yaxis=list(title='Contamination Rate'))
+figContaminationRate <- figDeathRate %>% config(locale="pt-br")
+figContaminationRate
 ```
 
 
