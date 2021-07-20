@@ -1,0 +1,263 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+# Data anlysis with COVID-19 data from Brazil until May/2021
+### Data obtained from website Brasil.io - https://brasil.io/dataset/covid19/files/
+### Hiago W. Petris - 22/05/2021
+### Download at: https://www.kaggle.com/hiagow/dados-covid-brasil-abril2021/
+
+```{r}
+setwd("C:/Users/hiago/OneDrive/Projetos/Analise-Dados-Covid/")
+
+library(tidyverse) # metapackage of all tidyverse packages
+library(ggplot2)
+library(plotly)
+library(readr)
+library(dplyr)
+
+arq = "C:/Users/hiago/Downloads/caso.csv"
+df = read_csv(arq)
+# View(df)
+head(df)
+str(df)
+```
+
+
+## First part: Only data from state of Paraná
+
+```{r}
+dfPR = df %>% 
+  arrange(date) %>%
+  filter(state=='PR', place_type=='state')
+head(dfPR)
+nrow(dfPR)
+#View(dfPR)
+```
+
+## Cumulative cases at Paraná
+
+
+```{r}
+figCumulativeCases <- plot_ly(dfPR,x=~date,y=~confirmed,type='scatter',name='Cumulative cases',mode='lines')
+figCumulativeCases <- figCumulativeCases %>% layout(xaxis=list(title='Date'),yaxis=list(title='Cumulative cases'))
+figCumulativeCases <- figCumulativeCases %>% config(locale="pt-br")
+figCumulativeCases
+```
+
+
+## Cumulative cases and deaths
+
+```{r}
+figCumulativeCasesAndDeaths <- figCumulativeCases %>% add_trace(y=~deaths,name='Cumulative deaths',mode='lines')
+figCumulativeCasesAndDeaths
+```
+
+## Death rate
+
+```{r}
+figDeathRate <- plot_ly(dfPR,x=~date,y=~death_rate,type='scatter',name='Death rate',mode='lines')
+figDeathRate <- figDeathRate %>% layout(xaxis=list(title='Date'),yaxis=list(title='Death rate'))
+figDeathRate
+```
+
+## New cases per day
+
+```{r}
+# ?dplyr::lag
+dfPRNewCases = dfPR
+
+dfPRNewCases = dfPRNewCases %>%
+  mutate(new_cases = confirmed-lag(confirmed), .after=confirmed)
+
+dfPRNewCases$new_cases[1] = dfPRNewCases$confirmed[1]
+
+head(dfPRNewCases)
+#View(dfPRNewCases)
+```
+
+## New cases
+
+```{r}
+figNewCases <- plot_ly(dfPRNewCases,x=~date,y=~new_cases,type='scatter',name='New Cases',mode='lines')
+figNewCases <- figNewCases %>% layout(xaxis=list(title='Date'),yaxis=list(title='New Cases'))
+figNewCases <- figNewCases %>% config(locale="pt-br")
+figNewCases
+```
+
+
+## Analysis of the impact of a restriction measure, getting 14 days before and 14 days after the measure
+
+* Restriction measure on 31/03
+  * http://www.aen.pr.gov.br/modules/noticias/article.php?storyid=111589#:~:text=10%20de%20mar%C3%A7o.-,O%20decreto%207.230%2F21%2C%20assinado%20pelo%20governador%20Carlos%20Massa%20Ratinho,atender%20aos%20s%C3%A1bados%20nas%20modalidades
+* Relax of the restriction measure on 05/04
+  * https://www.fecomerciopr.com.br/sala-de-imprensa/noticia/estado-revoga-decreto-de-restricoes-mais-rigidas-na-regiao-metropolitana-de-curitiba/
+
+```{r}
+dfPRRestrictionMeasure = dfPRNewCases %>%
+  filter(date>=as.Date('2021-03-31')-14, date<=as.Date('2021-04-05')+14) %>%
+  select(date, new_cases, death_rate)
+
+head(dfPRRestrictionMeasure)
+# View(dfPRRestrictionMeasure)
+
+figRestrictionMeasure <- plot_ly(dfPRRestrictionMeasure,x=~date,y=~new_cases,type='scatter',name='New Cases',mode='lines')
+figRestrictionMeasure <- figRestrictionMeasure %>% layout(xaxis=list(title='Date'),yaxis=list(title='New Cases'))
+figRestrictionMeasure <- figRestrictionMeasure %>% config(locale="pt-br")
+
+figRestrictionMeasure <- figRestrictionMeasure %>% add_segments(
+  name="Restriction Measure", line=list(color="orange"), 
+  x=as.Date('2021-03-31'), xend=as.Date('2021-03-31'),
+  y=min(dfPRRestrictionMeasure$new_cases), yend=max(dfPRRestrictionMeasure$new_cases))
+
+figRestrictionMeasure <- figRestrictionMeasure %>% layout(
+  shapes=list(
+    type="rect",fillcolor="orange", line=list(color='orange'), opacity=0.3, 
+    x0=as.Date('2021-03-31'), x1=as.Date('2021-04-05'),
+    y0=min(dfPRRestrictionMeasure$new_cases),y1=max(dfPRRestrictionMeasure$new_cases)
+  )
+)
+
+figRestrictionMeasure <- figRestrictionMeasure %>% add_segments(
+  name="Relax of restriction measure", line=list(color="green"), 
+  x=as.Date('2021-04-05'), xend=as.Date('2021-04-05'),
+  y=min(dfPRRestrictionMeasure$new_cases),yend=max(dfPRRestrictionMeasure$new_cases))
+
+figRestrictionMeasure
+```
+
+### Same analysis with Death reate
+
+```{r}
+figRestrictionMeasure2 <- plot_ly(dfPRRestrictionMeasure,x=~date,y=~death_rate,type='scatter',name='Death rate',mode='lines')
+figRestrictionMeasure2 <- figRestrictionMeasure2 %>% layout(xaxis=list(title='Date'),yaxis=list(title='Death rate'))
+figRestrictionMeasure2 <- figRestrictionMeasure2 %>% config(locale="pt-br")
+
+figRestrictionMeasure2 <- figRestrictionMeasure2 %>% add_segments(
+  name="Medida de restrição", line=list(color="orange"), 
+  x=as.Date('2021-03-31'), xend=as.Date('2021-03-31'), 
+  y=min(dfPRRestrictionMeasure$death_rate),yend=max(dfPRRestrictionMeasure$death_rate))
+
+figRestrictionMeasure2 <- figRestrictionMeasure2 %>% layout(
+  shapes=list(
+    type="rect",fillcolor="orange", line=list(color='orange'), opacity=0.3, 
+    x0=as.Date('2021-03-31'), x1=as.Date('2021-04-05'), 
+    y0=min(dfPRRestrictionMeasure$death_rate),y1=max(dfPRRestrictionMeasure$death_rate)
+  )
+)
+
+figRestrictionMeasure2 <- figRestrictionMeasure2 %>% add_segments(name="Relax of restriction measure", line=list(color="green"), x=as.Date('2021-04-05'), xend=as.Date('2021-04-05'),y=min(dfPRRestrictionMeasure$death_rate),yend=max(dfPRRestrictionMeasure$death_rate))
+figRestrictionMeasure2
+```
+
+
+## Contamination rate
+* Calculate contamination rate  = new cases / new cases from a day before
+
+```{r}
+dfPRContaminationRate = dfPRNewCases %>%
+  mutate(contamination_rate = round(confirmed/lag(confirmed),2), .after=new_cases) %>%
+  select(date,confirmed,contamination_rate)
+
+dfPRContaminationRate$contamination_rate[1] = 0
+
+head(dfPRContaminationRate)
+# View(dfPRContaminationRate)
+```
+
+
+## Death rate
+
+* Change the scale of Y axos or apply some normalization could help in visualization, beacause it starts on 0 and than has a peak at 2, but then it keeps approximately at 1
+
+```{r}
+figDeathRate <- plot_ly(dfPRContaminationRate,x=~date,y=~contamination_rate,type='scatter',name='Contamination Rate',mode='lines')
+figDeathRate <- figDeathRate %>% layout(xaxis=list(title='Date'),yaxis=list(title='Contamination Rate'))
+figDeathRate <- figDeathRate %>% config(locale="pt-br")
+figDeathRate
+```
+
+
+## Deaths / New Cases
+
+* Filter because it has and outlier
+
+```{r}
+dfPRDeathsPerNewcases = dfPRNewCases %>%
+  mutate(deaths_per_new_cases = ifelse(new_cases==0, deaths, round(deaths/new_cases,2)), .after=new_cases) %>%
+  select(date,deaths,new_cases,deaths_per_new_cases) %>%
+  filter(deaths_per_new_cases < 1000)
+
+head(dfPRDeathsPerNewcases)
+
+figDeathsNewCases <- plot_ly(dfPRDeathsPerNewcases,x=~date,y=~deaths_per_new_cases,type='scatter',name='Deaths/New Cases',mode='lines')
+figDeathsNewCases <- figDeathsNewCases %>% layout(xaxis=list(title='Date'),yaxis=list(title='Deaths/New Cases'))
+figDeathsNewCases <- figDeathsNewCases %>% config(locale="pt-br")
+figDeathsNewCases
+
+# TODO: LM new cases per death
+#ggplot(dfPRNewCases,aes(x=estimated_population,y=contamination_rate)) +
+# geom_point() +
+#stat_smooth(method="lm", col="red")
+```
+
+## Data from Brasil Cities
+
+```{r}
+# Creates dataframe with contamination rate and estimated population, only for cities
+
+dfContaminationRatePopulation = df %>% 
+  filter(place_type=='city') %>%
+  select(date,city,state,estimated_population,confirmed) %>%
+  arrange(city,state,date) %>%
+  mutate(contamination_rate = confirmed/lag(confirmed), .before=confirmed)
+
+# Removes column confirmed.
+# dfContaminationRatePopulation$confirmed = NULL
+
+# Removes NA values
+dfContaminationRatePopulation = dfContaminationRatePopulation %>%
+  filter(!is.na(contamination_rate) & !is.na(estimated_population))
+
+
+# Calculates the mean of contamination rate for every city and the max value of estimated population
+dfContaminationRatePopulation2 = dfContaminationRatePopulation %>%
+  group_by(city,state) %>%
+  summarise(meanContaminationRate = mean(contamination_rate), estimated_population = max(estimated_population)) %>%
+  filter(!is.infinite(meanContaminationRate))
+
+head(dfContaminationRatePopulation2)
+
+ggplot(dfContaminationRatePopulation2, aes(x=meanContaminationRate,y=estimated_population)) + 
+  geom_point()
+
+# There are cities with low population and high contamination rate
+# But no city with high population has contamination rate >  1.05
+
+# Check for Cities with higher population (Sao Paulo and Rio) or higher contamination rate
+dfContaminationRatePopulation2 %>% 
+  filter(estimated_population > 4.0e+06 | meanContaminationRate > 1.5)
+
+
+# Filter for "Santa Margarida do Sul" in the original dataframe
+View(df %>% filter(city=='Santa Margarida do Sul') %>% arrange(date) %>% filter(confirmed>23000))
+
+# Apparently it has an error on day 2021-04-04, with 23326 confirmed cases
+```
+
+## Analyse distribution of the contamination rate means
+
+```{r}
+# Filter by meanContaminationRete < 1.05 to facilitate visualization
+dfContaminationRatePopulation3 = dfContaminationRatePopulation2 %>% 
+  filter(meanContaminationRate < 1.05) %>% 
+  arrange(meanContaminationRate)
+
+mean(dfContaminationRatePopulation3$meanContaminationRate)
+median(dfContaminationRatePopulation3$meanContaminationRate)
+quantile(dfContaminationRatePopulation3$meanContaminationRate)
+
+ggplot(dfContaminationRatePopulation3, aes(x=meanContaminationRate)) + geom_density()
+
+```
